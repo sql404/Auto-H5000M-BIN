@@ -1087,7 +1087,38 @@ jobs:
           echo "" >> release_body.md
           echo "**⚙️ 启用的功能:**" >> release_body.md
           
-          jq -r 'to_entries | map(select(.key | startswith("enable_")) | select(.value == true or .value == "true") | .key) | .[]' "$GITHUB_WORKSPACE/config/plugins.json" | sed 's/^enable_//;s/_/ /g' | awk '{for(i=1;i<=NF;i++)sub(/./,toupper(substr($0,i,1)),$i)}1' | sed 's/^/- ✅ /' >> release_body.md
+          jq -r 'to_entries | map(select(.key | startswith("enable_")) | select(.value == true or .value == "true") | .key | sub("^enable_"; "")) | .[]' "$GITHUB_WORKSPACE/config/plugins.json" | awk '
+            {
+              key=$0;
+              if (key=="adguardhome") name="AdGuardHome";
+              else if (key=="openclash") name="OpenClash";
+              else if (key=="nikki") name="Nikki";
+              else if (key=="upnp") name="UPnP";
+              else if (key=="vlmcsd") name="VLMCSd";
+              else if (key=="mosdns") name="MosDNS";
+              else if (key=="dockerman") name="DockerMan";
+              else if (key=="qmodem_next") name="QModem Next";
+              else if (key=="qmodem") name="QModem";
+              else if (key=="mwan") name="MWAN";
+              else if (key=="homeproxy") name="HomeProxy";
+              else if (key=="adbyby_plus") name="Adbyby Plus";
+              else if (key=="original_modem") name="Original Modem";
+              else if (key=="netspeedtest") name="NetSpeedTest";
+              else if (key=="at_webserver") name="AT WebServer";
+              else if (key=="zerotier") name="ZeroTier";
+              else if (key=="watchcat") name="WatchCat";
+              else if (key=="easytier") name="EasyTier";
+              else if (key=="lucky") name="Lucky";
+              else if (key=="bandix") name="Bandix";
+              else if (key=="daed") name="Daed";
+              else if (key=="turboacc") name="TurboACC";
+              else if (key=="eqos_mtk") name="EQOS-MTK";
+              else if (key=="etherwake") name="EtherWake";
+              else if (key=="wireguard") name="WireGuard";
+              else { name=key; gsub(/_/, " ", name); }
+              print "- ✅ " name;
+            }
+          ' >> release_body.md
           
           echo "" >> release_body.md
           echo "💾 下载产物: 见下方 Artifacts" >> release_body.md
@@ -1157,7 +1188,38 @@ jobs:
           echo "" >> artifacts/release_body.md
           echo "**⚙️ 启用的功能:**" >> artifacts/release_body.md
           
-          jq -r 'to_entries | map(select(.key | startswith("enable_")) | select(.value == true or .value == "true") | .key) | .[]' "$GITHUB_WORKSPACE/config/plugins.json" | sed 's/^enable_//;s/_/ /g' | awk '{for(i=1;i<=NF;i++)sub(/./,toupper(substr($0,i,1)),$i)}1' | sed 's/^/- ✅ /' >> artifacts/release_body.md
+          jq -r 'to_entries | map(select(.key | startswith("enable_")) | select(.value == true or .value == "true") | .key | sub("^enable_"; "")) | .[]' "$GITHUB_WORKSPACE/config/plugins.json" | awk '
+            {
+              key=$0;
+              if (key=="adguardhome") name="AdGuardHome";
+              else if (key=="openclash") name="OpenClash";
+              else if (key=="nikki") name="Nikki";
+              else if (key=="upnp") name="UPnP";
+              else if (key=="vlmcsd") name="VLMCSd";
+              else if (key=="mosdns") name="MosDNS";
+              else if (key=="dockerman") name="DockerMan";
+              else if (key=="qmodem_next") name="QModem Next";
+              else if (key=="qmodem") name="QModem";
+              else if (key=="mwan") name="MWAN";
+              else if (key=="homeproxy") name="HomeProxy";
+              else if (key=="adbyby_plus") name="Adbyby Plus";
+              else if (key=="original_modem") name="Original Modem";
+              else if (key=="netspeedtest") name="NetSpeedTest";
+              else if (key=="at_webserver") name="AT WebServer";
+              else if (key=="zerotier") name="ZeroTier";
+              else if (key=="watchcat") name="WatchCat";
+              else if (key=="easytier") name="EasyTier";
+              else if (key=="lucky") name="Lucky";
+              else if (key=="bandix") name="Bandix";
+              else if (key=="daed") name="Daed";
+              else if (key=="turboacc") name="TurboACC";
+              else if (key=="eqos_mtk") name="EQOS-MTK";
+              else if (key=="etherwake") name="EtherWake";
+              else if (key=="wireguard") name="WireGuard";
+              else { name=key; gsub(/_/, " ", name); }
+              print "- ✅ " name;
+            }
+          ' >> artifacts/release_body.md
           
           echo "" >> artifacts/release_body.md
           echo "💾 下载产物: 见下方 Artifacts" >> artifacts/release_body.md
