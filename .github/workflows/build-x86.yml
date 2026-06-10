@@ -232,7 +232,11 @@ jobs:
           cd "$SOURCE_DIR"
           CFG="$GITHUB_WORKSPACE/config/plugins.json"
           INSTALL_DIR="files/root/ipks"
-          mkdir -p "$INSTALL_DIR" files/etc/uci-defaults
+          mkdir -p "$INSTALL_DIR" files/etc/uci-defaults files/etc/sysctl.d
+
+          cat > files/etc/sysctl.d/13-bbr-fq.conf << 'EOF'
+          net.core.default_qdisc=fq
+          EOF
 
           is_enabled() {
             [ "$(jq -r --arg key "$1" '.[$key] // false' "$CFG")" = "true" ]
@@ -355,6 +359,15 @@ jobs:
             fi
           }
 
+          verify_static_pkg() {
+            local config_name="$1"
+            if ! grep -q "^CONFIG_PACKAGE_${config_name}=y$" .config; then
+              echo "❌ 固定包 CONFIG_PACKAGE_${config_name}=y 未生效"
+              grep -n "PACKAGE_${config_name}" .config || true
+              exit 1
+            fi
+          }
+
           cp "$GITHUB_WORKSPACE/x86.extra.config" .config
 
           if is_enabled enable_bandix; then
@@ -469,6 +482,10 @@ jobs:
           verify_enabled_pkg "EtherWake" "luci-app-wol" "enable_etherwake"
           verify_enabled_pkg "Daed" "luci-app-daed" "enable_daed"
           verify_enabled_pkg "OpenClash" "luci-app-openclash" "enable_openclash"
+
+          for pkg in irqbalance ethtool smartmontools pciutils usbutils parted resize2fs losetup luci-app-sqm sqm-scripts kmod-sched kmod-sched-cake kmod-tcp-bbr; do
+            verify_static_pkg "$pkg"
+          done
 
           cp .config "$GITHUB_WORKSPACE/config/x86.config"
           echo "✅ x86 配置完成"
