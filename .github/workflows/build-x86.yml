@@ -8,6 +8,11 @@ on:
         required: false
         default: true
         type: boolean
+      enable_netdata:
+        description: '启用 Netdata 系统资源监控'
+        required: false
+        default: true
+        type: boolean
       enable_lucky:
         description: '启用 Lucky'
         required: false
@@ -142,6 +147,7 @@ jobs:
           }
 
           ENABLE_BANDIX=$(normalize_bool "${{ inputs.enable_bandix }}")
+          ENABLE_NETDATA=$(normalize_bool "${{ inputs.enable_netdata }}")
           ENABLE_LUCKY=$(normalize_bool "${{ inputs.enable_lucky }}")
           ENABLE_EASYTIER=$(normalize_bool "${{ inputs.enable_easytier }}")
           ENABLE_AT_WEBSERVER=$(normalize_bool "${{ inputs.enable_at_webserver }}")
@@ -160,6 +166,7 @@ jobs:
 
           jq -n \
             --argjson enable_bandix "$ENABLE_BANDIX" \
+            --argjson enable_netdata "$ENABLE_NETDATA" \
             --argjson enable_lucky "$ENABLE_LUCKY" \
             --argjson enable_easytier "$ENABLE_EASYTIER" \
             --argjson enable_at_webserver "$ENABLE_AT_WEBSERVER" \
@@ -172,6 +179,7 @@ jobs:
             --argjson enable_openclash "$ENABLE_OPENCLASH" \
             '{
               enable_bandix: $enable_bandix,
+              enable_netdata: $enable_netdata,
               enable_lucky: $enable_lucky,
               enable_easytier: $enable_easytier,
               enable_at_webserver: $enable_at_webserver,
@@ -397,6 +405,11 @@ jobs:
             echo "CONFIG_PACKAGE_librt=y" >> .config
           fi
 
+          if is_enabled enable_netdata; then
+            echo "CONFIG_PACKAGE_luci-app-netdata=y" >> .config
+            echo "CONFIG_PACKAGE_luci-i18n-netdata-zh-cn=y" >> .config
+          fi
+
           if is_enabled enable_lucky; then
             echo "CONFIG_PACKAGE_luci-app-lucky=y" >> .config
             echo "CONFIG_PACKAGE_luci-i18n-lucky-zh-cn=y" >> .config
@@ -485,6 +498,11 @@ jobs:
             echo "CONFIG_PACKAGE_luci-app-openclash=y" >> .config
           fi
 
+          if ! is_enabled enable_netdata; then
+            for pkg in luci-app-netdata luci-i18n-netdata-zh-cn netdata; do
+              disable_package "$pkg"
+            done
+          fi
           is_enabled enable_lucky || disable_package "luci-app-lucky"
           is_enabled enable_at_webserver || disable_package "luci-app-at-webserver"
           is_enabled enable_netspeedtest || disable_package "luci-app-netspeedtest"
@@ -504,6 +522,7 @@ jobs:
 
           make defconfig
 
+          verify_enabled_pkg "Netdata" "luci-app-netdata" "enable_netdata"
           verify_enabled_pkg "Lucky" "luci-app-lucky" "enable_lucky"
           verify_enabled_pkg "AT WebServer" "luci-app-at-webserver" "enable_at_webserver"
           verify_enabled_pkg "NetSpeedTest" "luci-app-netspeedtest" "enable_netspeedtest"
@@ -620,6 +639,7 @@ jobs:
             {
               key=$0;
               if (key=="bandix") name="Bandix";
+              else if (key=="netdata") name="Netdata";
               else if (key=="lucky") name="Lucky";
               else if (key=="easytier") name="EasyTier";
               else if (key=="at_webserver") name="AT WebServer";
