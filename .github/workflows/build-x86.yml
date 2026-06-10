@@ -23,6 +23,11 @@ on:
         required: false
         default: true
         type: boolean
+      enable_modemmanager:
+        description: '启用 ModemManager/5G 协议包'
+        required: false
+        default: false
+        type: boolean
       enable_netspeedtest:
         description: '启用 NetSpeedTest'
         required: false
@@ -140,6 +145,7 @@ jobs:
           ENABLE_LUCKY=$(normalize_bool "${{ inputs.enable_lucky }}")
           ENABLE_EASYTIER=$(normalize_bool "${{ inputs.enable_easytier }}")
           ENABLE_AT_WEBSERVER=$(normalize_bool "${{ inputs.enable_at_webserver }}")
+          ENABLE_MODEMMANAGER=$(normalize_bool "${{ inputs.enable_modemmanager }}")
           ENABLE_NETSPEEDTEST=$(normalize_bool "${{ inputs.enable_netspeedtest }}")
           ENABLE_UPNP=$(normalize_bool "${{ inputs.enable_upnp }}")
           ENABLE_DOCKERMAN=$(normalize_bool "${{ inputs.enable_dockerman }}")
@@ -157,6 +163,7 @@ jobs:
             --argjson enable_lucky "$ENABLE_LUCKY" \
             --argjson enable_easytier "$ENABLE_EASYTIER" \
             --argjson enable_at_webserver "$ENABLE_AT_WEBSERVER" \
+            --argjson enable_modemmanager "$ENABLE_MODEMMANAGER" \
             --argjson enable_netspeedtest "$ENABLE_NETSPEEDTEST" \
             --argjson enable_upnp "$ENABLE_UPNP" \
             --argjson enable_dockerman "$ENABLE_DOCKERMAN" \
@@ -168,6 +175,7 @@ jobs:
               enable_lucky: $enable_lucky,
               enable_easytier: $enable_easytier,
               enable_at_webserver: $enable_at_webserver,
+              enable_modemmanager: $enable_modemmanager,
               enable_netspeedtest: $enable_netspeedtest,
               enable_upnp: $enable_upnp,
               enable_dockerman: $enable_dockerman,
@@ -400,6 +408,28 @@ jobs:
             echo "CONFIG_PACKAGE_luci-i18n-at-webserver-zh-cn=y" >> .config
           fi
 
+          if is_enabled enable_modemmanager; then
+            echo "CONFIG_PACKAGE_luci-proto-mbim=y" >> .config
+            echo "CONFIG_PACKAGE_umbim=y" >> .config
+            echo "CONFIG_PACKAGE_kmod-usb-net-cdc-mbim=y" >> .config
+            echo "CONFIG_PACKAGE_luci-proto-qmi=y" >> .config
+            echo "CONFIG_PACKAGE_uqmi=y" >> .config
+            echo "CONFIG_PACKAGE_kmod-usb-net-qmi-wwan=y" >> .config
+            echo "CONFIG_PACKAGE_luci-proto-ncm=y" >> .config
+            echo "CONFIG_PACKAGE_comgt-ncm=y" >> .config
+            echo "CONFIG_PACKAGE_kmod-usb-net-cdc-ncm=y" >> .config
+            echo "CONFIG_PACKAGE_kmod-usb-net-huawei-cdc-ncm=y" >> .config
+            echo "CONFIG_PACKAGE_kmod-usb-net-cdc-ether=y" >> .config
+            echo "CONFIG_PACKAGE_kmod-usb-net-rndis=y" >> .config
+            echo "CONFIG_PACKAGE_usb-modeswitch=y" >> .config
+            echo "CONFIG_PACKAGE_kmod-usb-acm=y" >> .config
+            echo "CONFIG_PACKAGE_kmod-usb-serial=y" >> .config
+            echo "CONFIG_PACKAGE_kmod-usb-serial-option=y" >> .config
+            echo "CONFIG_PACKAGE_kmod-usb-serial-wwan=y" >> .config
+            echo "CONFIG_PACKAGE_luci-proto-modemmanager=y" >> .config
+            echo "CONFIG_PACKAGE_modemmanager=y" >> .config
+          fi
+
           if is_enabled enable_netspeedtest; then
             echo "CONFIG_PACKAGE_luci-app-netspeedtest=y" >> .config
             echo "CONFIG_PACKAGE_luci-i18n-netspeedtest-zh-cn=y" >> .config
@@ -483,9 +513,21 @@ jobs:
           verify_enabled_pkg "Daed" "luci-app-daed" "enable_daed"
           verify_enabled_pkg "OpenClash" "luci-app-openclash" "enable_openclash"
 
-          for pkg in irqbalance ethtool smartmontools pciutils usbutils parted resize2fs losetup luci-app-sqm sqm-scripts kmod-sched kmod-sched-cake kmod-tcp-bbr; do
+          for pkg in irqbalance ethtool smartmontools pciutils usbutils parted resize2fs losetup \
+            luci-app-sqm sqm-scripts kmod-sched kmod-sched-cake kmod-tcp-bbr; do
             verify_static_pkg "$pkg"
           done
+
+          if is_enabled enable_modemmanager; then
+            for pkg in luci-proto-mbim umbim kmod-usb-net-cdc-mbim \
+              luci-proto-qmi uqmi kmod-usb-net-qmi-wwan \
+              luci-proto-ncm comgt-ncm kmod-usb-net-cdc-ncm kmod-usb-net-huawei-cdc-ncm \
+              kmod-usb-net-cdc-ether kmod-usb-net-rndis usb-modeswitch \
+              kmod-usb-acm kmod-usb-serial kmod-usb-serial-option kmod-usb-serial-wwan \
+              luci-proto-modemmanager modemmanager; do
+              verify_static_pkg "$pkg"
+            done
+          fi
 
           cp .config "$GITHUB_WORKSPACE/config/x86.config"
           echo "✅ x86 配置完成"
@@ -581,6 +623,7 @@ jobs:
               else if (key=="lucky") name="Lucky";
               else if (key=="easytier") name="EasyTier";
               else if (key=="at_webserver") name="AT WebServer";
+              else if (key=="modemmanager") name="ModemManager";
               else if (key=="netspeedtest") name="NetSpeedTest";
               else if (key=="upnp") name="UPnP";
               else if (key=="dockerman") name="DockerMan";
