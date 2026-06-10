@@ -837,14 +837,35 @@ jobs:
 
           cat base.config > .config
 
+          is_enabled() {
+            [ "$(jq -r --arg key "$1" '.[$key] // false' "$CFG")" = "true" ]
+          }
+
+          disable_package() {
+            local pkg="$1"
+            sed -i "/^CONFIG_PACKAGE_${pkg}=/d; /^# CONFIG_PACKAGE_${pkg} is not set/d" .config
+            echo "# CONFIG_PACKAGE_${pkg} is not set" >> .config
+          }
+
+          verify_enabled_pkg() {
+            local feature_name="$1"
+            local config_name="$2"
+            local enabled_key="$3"
+            if is_enabled "$enabled_key" && ! grep -q "^CONFIG_PACKAGE_${config_name}=y$" .config; then
+              echo "❌ ${feature_name} 已启用，但 make defconfig 后 CONFIG_PACKAGE_${config_name}=y 未生效"
+              grep -n "PACKAGE_${config_name}" .config || true
+              exit 1
+            fi
+          }
+
           # [修复] 如果未启用任何 Modem 插件，显式禁用默认的 luci-app-modem
           # 因为 base.config 默认开启了它，若不处理会导致"自动启用"
           if [ "$EN_QN" != "true" ] && [ "$EN_Q" != "true" ] && [ "$EN_OM" != "true" ]; then
             echo "ℹ️ 未启用任何 Modem，显式禁用原版 Modem"
-            sed -i '/CONFIG_PACKAGE_luci-app-modem=y/d' .config
-            sed -i '/CONFIG_PACKAGE_modem=y/d' .config
-            echo "# CONFIG_PACKAGE_luci-app-modem is not set" >> .config
-            echo "# CONFIG_PACKAGE_modem is not set" >> .config
+            disable_package "luci-app-modem"
+            disable_package "modem"
+            disable_package "luci-i18n-modem-zh-cn"
+            disable_package "luci-i18n-modem-en"
           fi
 
           echo "🔧 基于 plugins.json 循环生成 .config..."
@@ -913,6 +934,8 @@ jobs:
                 echo "CONFIG_PACKAGE_kmod-wireguard=y" >> .config
                 ;;
               nikki)
+                disable_package "mihomo-alpha"
+                echo "CONFIG_PACKAGE_mihomo-meta=y" >> .config
                 echo "CONFIG_PACKAGE_nikki=y" >> .config
                 echo "CONFIG_PACKAGE_luci-app-nikki=y" >> .config
                 echo "CONFIG_PACKAGE_luci-i18n-nikki-zh-cn=y" >> .config
@@ -961,6 +984,9 @@ jobs:
                 echo "# CONFIG_PACKAGE_luci-app-qmodem_INCLUDE_rdisc6 is not set" >> .config
                 echo "# CONFIG_PACKAGE_luci-app-qmodem_INCLUDE_no_ndisc_rdisc6 is not set" >> .config
                 echo "CONFIG_PACKAGE_ndisc6=y" >> .config
+                echo "CONFIG_PACKAGE_luci-app-qmodem_USE_TOM_CUSTOMIZED_QUECTEL_CM=y" >> .config
+                echo "# CONFIG_PACKAGE_luci-app-qmodem_USING_QWRT_QUECTEL_CM_5G is not set" >> .config
+                echo "# CONFIG_PACKAGE_luci-app-qmodem_USING_NORMAL_QUECTEL_CM is not set" >> .config
                 echo "CONFIG_PACKAGE_quectel-CM-5G-M=y" >> .config
                 echo "CONFIG_PACKAGE_sms-tool_q=y" >> .config
                 echo "CONFIG_PACKAGE_ubus-at-daemon=y" >> .config
@@ -969,6 +995,7 @@ jobs:
                 echo "CONFIG_PACKAGE_kmod-qmi_wwan_q=y" >> .config
                 echo "CONFIG_PACKAGE_kmod-qmi_wwan_f=y" >> .config
                 echo "CONFIG_PACKAGE_kmod-qmi_wwan_s=y" >> .config
+                echo "CONFIG_PACKAGE_mtkhqos_util=y" >> .config
                 ;;
               mwan)
                 echo "CONFIG_PACKAGE_mwan3=y" >> .config
@@ -1004,7 +1031,20 @@ jobs:
                 echo "CONFIG_PACKAGE_luci-app-lucky=y" >> .config
                 echo "CONFIG_PACKAGE_luci-i18n-lucky-zh-cn=y" >> .config
                 ;;
-              adguardhome|mosdns|dockerman|homeproxy|upnp|vlmcsd)
+              dockerman)
+                echo "CONFIG_PACKAGE_luci-app-dockerman=y" >> .config
+                echo "CONFIG_PACKAGE_luci-lib-docker=y" >> .config
+                echo "CONFIG_PACKAGE_docker=y" >> .config
+                echo "CONFIG_PACKAGE_dockerd=y" >> .config
+                echo "CONFIG_PACKAGE_containerd=y" >> .config
+                echo "CONFIG_PACKAGE_runc=y" >> .config
+                ;;
+              vlmcsd)
+                echo "CONFIG_PACKAGE_luci-app-vlmcsd=y" >> .config
+                echo "CONFIG_PACKAGE_luci-i18n-vlmcsd-zh-cn=y" >> .config
+                echo "CONFIG_PACKAGE_vlmcsd=y" >> .config
+                ;;
+              adguardhome|mosdns|homeproxy|upnp)
                 echo "CONFIG_PACKAGE_luci-app-${name}=y" >> .config
                 echo "CONFIG_PACKAGE_luci-i18n-${name}-zh-cn=y" >> .config || true
                 ;;
@@ -1019,13 +1059,67 @@ jobs:
             cat "$GITHUB_WORKSPACE/h5000m.extra.config" >> .config
           fi
 
-          all_disabled=("luci-app-sms-tool-lite" "luci-app-3ginfo-lite" "luci-app-wrtbwmon" "wrtbwmon")
+          all_disabled=(
+            "luci-app-sms-tool-lite"
+            "luci-app-3ginfo-lite"
+            "luci-app-wrtbwmon"
+            "wrtbwmon"
+            "luci-app-rclone"
+            "rclone"
+            "rclone-ng"
+            "rclone-webui-react"
+          )
+
+          is_enabled "enable_adguardhome" || all_disabled+=("luci-app-adguardhome" "luci-i18n-adguardhome-zh-cn")
+          is_enabled "enable_openclash" || all_disabled+=("luci-app-openclash")
+          is_enabled "enable_nikki" || all_disabled+=("nikki" "luci-app-nikki" "luci-i18n-nikki-zh-cn" "luci-i18n-nikki-en" "mihomo-alpha" "mihomo-meta")
+          is_enabled "enable_upnp" || all_disabled+=("luci-app-upnp" "luci-i18n-upnp-zh-cn")
+          is_enabled "enable_vlmcsd" || all_disabled+=("luci-app-vlmcsd" "luci-i18n-vlmcsd-zh-cn" "vlmcsd")
+          is_enabled "enable_mosdns" || all_disabled+=("luci-app-mosdns" "luci-i18n-mosdns-zh-cn")
+          is_enabled "enable_dockerman" || all_disabled+=("luci-app-dockerman" "luci-lib-docker" "docker" "dockerd" "containerd" "runc")
+          is_enabled "enable_qmodem_next" || all_disabled+=("luci-app-qmodem-next" "luci-i18n-qmodem-next-zh-cn")
+          is_enabled "enable_qmodem" || all_disabled+=("luci-app-qmodem" "qmodem" "luci-app-qmodem-sms")
+          is_enabled "enable_mwan" || all_disabled+=("luci-app-mwan3")
+          is_enabled "enable_homeproxy" || all_disabled+=("luci-app-homeproxy" "luci-i18n-homeproxy-zh-cn")
+          is_enabled "enable_adbyby_plus" || all_disabled+=("luci-app-adbyby-plus" "luci-i18n-adbyby-plus-zh-cn")
+          is_enabled "enable_original_modem" || all_disabled+=("luci-app-modem" "modem" "luci-i18n-modem-zh-cn" "luci-i18n-modem-en")
+          is_enabled "enable_netspeedtest" || all_disabled+=("luci-app-netspeedtest" "luci-i18n-netspeedtest-zh-cn")
+          is_enabled "enable_at_webserver" || all_disabled+=("at-webserver" "luci-app-at-webserver" "luci-i18n-at-webserver-zh-cn")
+          is_enabled "enable_zerotier" || all_disabled+=("zerotier" "luci-app-zerotier" "luci-i18n-zerotier-zh-cn")
+          is_enabled "enable_watchcat" || all_disabled+=("watchcat" "luci-app-watchcat" "luci-i18n-watchcat-zh-cn")
+          is_enabled "enable_lucky" || all_disabled+=("luci-app-lucky" "luci-i18n-lucky-zh-cn")
+          is_enabled "enable_daed" || all_disabled+=("luci-app-daed" "luci-i18n-daed-zh-cn")
+          is_enabled "enable_etherwake" || all_disabled+=("luci-app-wol" "luci-i18n-wol-zh-cn" "etherwake")
+          is_enabled "enable_wireguard" || all_disabled+=("luci-proto-wireguard" "luci-app-wireguard" "wireguard-tools" "kmod-wireguard")
+
           for pkg in "${all_disabled[@]}"; do
-             sed -i "/^CONFIG_PACKAGE_${pkg}=/d" .config
-             echo "# CONFIG_PACKAGE_${pkg} is not set" >> .config
+             disable_package "$pkg"
           done
 
           make defconfig
+
+          verify_enabled_pkg "Nikki" "luci-app-nikki" "enable_nikki"
+          verify_enabled_pkg "AdGuardHome" "luci-app-adguardhome" "enable_adguardhome"
+          verify_enabled_pkg "OpenClash" "luci-app-openclash" "enable_openclash"
+          verify_enabled_pkg "UPnP" "luci-app-upnp" "enable_upnp"
+          verify_enabled_pkg "VLMCSd" "luci-app-vlmcsd" "enable_vlmcsd"
+          verify_enabled_pkg "MosDNS" "luci-app-mosdns" "enable_mosdns"
+          verify_enabled_pkg "DockerMan" "luci-app-dockerman" "enable_dockerman"
+          verify_enabled_pkg "QModem Next" "luci-app-qmodem-next" "enable_qmodem_next"
+          verify_enabled_pkg "QModem" "luci-app-qmodem" "enable_qmodem"
+          verify_enabled_pkg "Original Modem" "luci-app-modem" "enable_original_modem"
+          verify_enabled_pkg "MWAN" "luci-app-mwan3" "enable_mwan"
+          verify_enabled_pkg "HomeProxy" "luci-app-homeproxy" "enable_homeproxy"
+          verify_enabled_pkg "Adbyby Plus" "luci-app-adbyby-plus" "enable_adbyby_plus"
+          verify_enabled_pkg "NetSpeedTest" "luci-app-netspeedtest" "enable_netspeedtest"
+          verify_enabled_pkg "AT WebServer" "luci-app-at-webserver" "enable_at_webserver"
+          verify_enabled_pkg "ZeroTier" "luci-app-zerotier" "enable_zerotier"
+          verify_enabled_pkg "WatchCat" "luci-app-watchcat" "enable_watchcat"
+          verify_enabled_pkg "Lucky" "luci-app-lucky" "enable_lucky"
+          verify_enabled_pkg "Daed" "luci-app-daed" "enable_daed"
+          verify_enabled_pkg "EtherWake" "luci-app-wol" "enable_etherwake"
+          verify_enabled_pkg "WireGuard" "luci-app-wireguard" "enable_wireguard"
+
           echo "✅ 配置完成"
 
       - name: 上传构建配置 Artifact
