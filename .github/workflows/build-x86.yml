@@ -41,7 +41,7 @@ on:
       enable_dockerman:
         description: '启用 DockerMan'
         required: false
-        default: true
+        default: false
         type: boolean
       enable_etherwake:
         description: '启用 EtherWake'
