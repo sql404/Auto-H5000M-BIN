@@ -382,9 +382,22 @@ jobs:
           }
           cat base.config > .config
 
-          # 显式添加 CMCC XR30 (cmcc_xr30-nand) 设备支持
+          # 只构建 CMCC XR30 NAND (U-Boot mod)，避免 base.config 的 multi-profile 产出其它设备固件。
+          sed -i \
+            -e '/^CONFIG_TARGET_mediatek_.*=y/d' \
+            -e '/^# CONFIG_TARGET_mediatek_.* is not set/d' \
+            -e '/^CONFIG_TARGET_MULTI_PROFILE=/d' \
+            -e '/^# CONFIG_TARGET_MULTI_PROFILE is not set/d' \
+            -e '/^CONFIG_TARGET_ALL_PROFILES=/d' \
+            -e '/^# CONFIG_TARGET_ALL_PROFILES is not set/d' \
+            -e '/^CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_/d' \
+            -e '/^# CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_/d' \
+            -e '/^CONFIG_TARGET_DEVICE_PACKAGES_mediatek_filogic_DEVICE_/d' \
+            .config
           echo "CONFIG_TARGET_mediatek=y" >> .config
           echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
+          echo "# CONFIG_TARGET_MULTI_PROFILE is not set" >> .config
+          echo "# CONFIG_TARGET_ALL_PROFILES is not set" >> .config
           echo "CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_cmcc_xr30-nand=y" >> .config
 
           echo "🔧 基于 plugins.json 循环生成 .config..."
@@ -529,8 +542,17 @@ jobs:
         run: |
           cd $SOURCE_DIR
           mkdir -p ../artifacts
-          find bin/targets -type f \( -name "*.bin" -o -name "*.img.gz" \) -exec cp {} ../artifacts/ \;
+          find bin/targets -type f \( -name "*cmcc_xr30-nand*.bin" -o -name "*cmcc_xr30-nand*.img.gz" -o -name "*-bl2.bin" \) -exec cp {} ../artifacts/ \;
           cd ..
+          if [ -z "$(find artifacts -type f \( -name '*cmcc_xr30-nand*.bin' -o -name '*cmcc_xr30-nand*.img.gz' \) -print -quit)" ]; then
+            echo "❌ 未找到 cmcc_xr30-nand 固件产物"
+            exit 1
+          fi
+          if find artifacts -type f \( -name '*.bin' -o -name '*.img.gz' \) ! -name '*cmcc_xr30-nand*' ! -name '*-bl2.bin' | grep -q .; then
+            echo "❌ 发现非 cmcc_xr30-nand 固件产物"
+            find artifacts -type f \( -name '*.bin' -o -name '*.img.gz' \) ! -name '*cmcc_xr30-nand*' ! -name '*-bl2.bin'
+            exit 1
+          fi
           tar -czf artifacts.tar.gz artifacts/
 
       - name: 动态生成Release信息
