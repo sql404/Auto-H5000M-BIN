@@ -396,6 +396,7 @@ jobs:
             echo "CONFIG_PACKAGE_libstdcpp=y" >> .config
             echo "CONFIG_PACKAGE_libpthread=y" >> .config
             echo "CONFIG_PACKAGE_librt=y" >> .config
+            echo "CONFIG_PACKAGE_iw=y" >> .config
             echo "CONFIG_PACKAGE_jsonfilter=y" >> .config
             echo "CONFIG_PACKAGE_jshn=y" >> .config
           fi
@@ -540,7 +541,7 @@ jobs:
           done
 
           if is_enabled enable_bandix; then
-            for pkg in curl luci-lib-jsonc jsonfilter jshn; do
+            for pkg in zoneinfo-all conntrack iw curl luci-lib-jsonc jsonfilter jshn; do
               verify_static_pkg "$pkg"
             done
           fi
