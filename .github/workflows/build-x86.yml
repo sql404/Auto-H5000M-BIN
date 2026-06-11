@@ -396,6 +396,8 @@ jobs:
             echo "CONFIG_PACKAGE_libstdcpp=y" >> .config
             echo "CONFIG_PACKAGE_libpthread=y" >> .config
             echo "CONFIG_PACKAGE_librt=y" >> .config
+            echo "CONFIG_PACKAGE_jsonfilter=y" >> .config
+            echo "CONFIG_PACKAGE_jshn=y" >> .config
           fi
 
           if is_enabled enable_easytier; then
@@ -536,6 +538,12 @@ jobs:
             luci-app-sqm sqm-scripts kmod-sched kmod-sched-cake kmod-tcp-bbr; do
             verify_static_pkg "$pkg"
           done
+
+          if is_enabled enable_bandix; then
+            for pkg in curl luci-lib-jsonc jsonfilter jshn; do
+              verify_static_pkg "$pkg"
+            done
+          fi
 
           if is_enabled enable_modemmanager; then
             for pkg in luci-proto-mbim umbim kmod-usb-net-cdc-mbim \
