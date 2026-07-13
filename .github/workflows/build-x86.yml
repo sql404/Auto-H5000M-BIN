@@ -248,11 +248,7 @@ jobs:
           cd "$SOURCE_DIR"
           CFG="$GITHUB_WORKSPACE/config/plugins.json"
           INSTALL_DIR="files/root/ipks"
-          mkdir -p "$INSTALL_DIR" files/etc/uci-defaults files/etc/sysctl.d
-
-          cat > files/etc/sysctl.d/13-bbr-fq.conf << 'EOF'
-          net.core.default_qdisc=fq
-          EOF
+          mkdir -p "$INSTALL_DIR" files/etc/uci-defaults
 
           is_enabled() {
             [ "$(jq -r --arg key "$1" '.[$key] // false' "$CFG")" = "true" ]
@@ -536,7 +532,7 @@ jobs:
           verify_enabled_pkg "OpenClash" "luci-app-openclash" "enable_openclash"
 
           for pkg in irqbalance ethtool smartmontools pciutils usbutils parted resize2fs losetup \
-            luci-app-sqm sqm-scripts kmod-sched kmod-sched-cake kmod-tcp-bbr; do
+            luci-app-sqm sqm-scripts kmod-sched kmod-sched-cake; do
             verify_static_pkg "$pkg"
           done
 
