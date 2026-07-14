@@ -130,8 +130,8 @@ permissions:
   contents: write
 
 env:
-  REPO_URL: https://github.com/561410590/immortalwrt-mt798x-6.6
-  REPO_BRANCH: mtwifi-sync-20260321-002700
+  REPO_URL: https://github.com/padavanonly/immortalwrt-mt798x-24.10
+  REPO_BRANCH: mt798x-mt799x-6.6-mtwifi
   CONFIG_URL: https://raw.githubusercontent.com/padavanonly/immortalwrt-mt798x-6.6/refs/heads/mt798x-mt799x-6.6-mtwifi/defconfig/mt7987_mt7992.config
   SOURCE_DIR: immortalwrt
   TZ: Asia/Shanghai
