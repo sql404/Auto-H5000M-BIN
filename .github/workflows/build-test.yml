@@ -16,7 +16,7 @@ on:
       self_hosted_labels:
         description: '自托管 runner 标签（逗号分隔；仅 runner_type=self-hosted 时生效，默认 linux,x64,h5000m）'
         required: false
-        default: 'linux,x64,h5000m'
+        default: 'h5000m'
         type: string
       enable_adguardhome:
         description: '启用 AdGuardHome'
